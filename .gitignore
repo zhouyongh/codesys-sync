@@ -1,0 +1,7 @@
+# Tool working area (created inside a target repo when this tool runs there)
+.codesys-sync/
+*.bak
+
+# Editor / OS noise
+Thumbs.db
+.DS_Store
