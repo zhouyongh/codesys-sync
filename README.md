@@ -12,18 +12,16 @@ CODESYS stores projects (`.project` / `.library`) as binary files. Git cannot di
                           headless build report
 ```
 
-## Why another tool?
+## What it can do
 
-| | Official [Git Add-On](https://us.codesys.com/) | Open-source export/sync tools | codesys-sync |
-|---|---|---|---|
-| License | paid | varies | Unlicense (public domain) |
-| Round-trip text ⇄ project | ✔ | ✔ | ✔ |
-| Structure operations (create/rename/move/delete objects, tasks, libraries) from text | ✖ | ✖ | ✔ |
-| Automatic project-wide reference rewriting on rename | ✖ | partial | ✔ (word-boundary, ST bodies) |
-| Safety: auto backup, write-back verification, timestamp guard | ✖ | partial | ✔ |
-| Headless build with structured `errors=`/`warnings=` report | ✖ | ✖ | ✔ |
+- **Round-trip text sync** — export every Application object to plain-text `.st` files, then write them back into the binary project, verified object by object.
+- **Structural changes as text** — create / rename / move / delete objects, wire programs into tasks, and add library references via a declarative `structure_ops.txt`; renames rewrite references across the whole project automatically.
+- **Headless build** — compile a project copy without opening the IDE; structured `errors=` / `warnings=` report with meaningful exit codes.
+- **Read-only verification** — compare the text tree against the project and report missing objects, content drift, and rename candidates.
+- **Safety rails** — automatic backup before every import, per-object write-back verification, a timestamp guard that refuses stale imports, and a version guard against IDE/project mismatches.
+- **Git-friendly output** — exports contain no absolute paths and no timestamps; re-exporting an unchanged project leaves `git status` clean.
 
-The typical loop: **export → edit text (or let an AI agent edit it) → import → build** — every step verifiable from the command line, no IDE interaction required.
+The typical loop: **export → edit text (yourself or an AI agent) → import → build** — every step runnable and verifiable from the command line, no IDE interaction required.
 
 ## Requirements
 
@@ -76,19 +74,6 @@ Optional convenience: drop thin `.bat` shims in your repo (double-click entry po
 | `build.ps1` | Headless build of a project copy, structured report | works on a **copy** — IDE can stay open |
 
 All four take `-Root`, `-Select <n>` (non-interactive project pick), and installation overrides. `import.ps1` additionally supports `-Yes`, `-Dir <keyword>`, `-Sync` (structure sync for refactors), `-Force`, `-VerifyBuild`, `-VerifyQuick`. Full parameter reference: [SKILL.md](SKILL.md).
-
-## structure_ops.txt — structural changes as text
-
-Renaming a POU, adding a task, wiring a program into a task, adding a library — all of that is expressed in a plain text file executed by the importer before the per-object write-back:
-
-```
-CREATE_FB|Application/Motion|FB_AxisControl
-CREATE_POU|Application|PRG_Init
-ASSIGN_TO_TASK|Application/Task Configuration/MainTask|Application/PRG_Init
-RENAME|Application/Motion/FB_Old|FB_AxisControl
-```
-
-All CREATE/ASSIGN operations are idempotent — the file can stay in the repo and run on every import. RENAME automatically rewrites references across the whole project (CODESYS' own `rename()` does not). DELETE enforces a zero-reference check. Full op reference and boundaries: [SKILL.md](SKILL.md#structure_opstxt-structure-operations-list).
 
 ## Working with AI agents
 
