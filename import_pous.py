@@ -766,6 +766,11 @@ def stamp_lastexport(cfg):
             os.makedirs(d)
         f = codecs.open(lastexport, "w", "utf-8")
         f.write(u"stamped=%s\n" % time.strftime("%Y-%m-%dT%H:%M:%S"))
+        try:
+            cv = unicode(proj.project_settings.get_compilerversion())
+            f.write(u"compiler=%s\n" % cv)
+        except Exception:
+            pass
         f.close()
         log(u"last-export stamp updated: " + lastexport)
     except Exception as e:

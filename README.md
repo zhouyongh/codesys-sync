@@ -26,7 +26,7 @@ The typical loop: **export → edit text (yourself or an AI agent) → import �
 ## Requirements
 
 - Windows (PowerShell 5.1; the scripts are UTF-8 **with BOM** — keep it when editing)
-- A local CODESYS 3.5.x installation with Scripting Engine (standard). Auto-detected: newest `CODESYS 3.5*` under Program Files. Override with `-CodesysExe`/`-Profile` or `CODESYS_SYNC_EXE`/`CODESYS_SYNC_PROFILE` — mandatory when several versions coexist and the project belongs to an older one.
+- A local CODESYS 3.5.x installation with Scripting Engine (standard). Auto-detected by matching the project's **last-saved compiler version** (not the newest install — that would silently upgrade older projects). Override with `-CodesysExe`/`-Profile` or `CODESYS_SYNC_EXE`/`CODESYS_SYNC_PROFILE`.
 - No Python needed on the machine — the inner scripts run on CODESYS' built-in IronPython 2.7.
 - Verified on **CODESYS 3.5.17 and 3.5.22**.
 

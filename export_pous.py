@@ -244,6 +244,13 @@ def write_project_info(proj, apps):
 
     f.write(u"[project]\n")
     f.write(u"file: %s\n" % os.path.basename(PROJ))
+    # last-saved compiler version — used by Resolve-CodesysInstall to pick
+    # the matching CODESYS install on import/build (do not remove)
+    try:
+        cv = unicode(proj.project_settings.get_compilerversion())
+    except Exception:
+        cv = u""
+    f.write(u"compiler_version: %s\n" % cv)
     # no absolute path / no timestamp here — this file is committed to git
     f.write(u"\n")
 

@@ -25,11 +25,20 @@ try { [Console]::OutputEncoding = [System.Text.Encoding]::UTF8 } catch {}
 if (-not $Root) { Write-Host "-Root is required (target repo root, must contain projects\)"; exit 1 }
 $root    = (Resolve-Path -LiteralPath $Root).Path
 $projDir = Join-Path $root "projects"
-$install = Resolve-CodesysInstall -Exe $CodesysExe -ProfileName $Profile
-$codesys = $install.Exe
-$profile = $install.Profile
-Write-Host "CODESYS: $codesys"
-Write-Host "Profile: $profile"
+
+function Get-ExportName([string]$base) {
+    return ($base -replace '[\\/:*?"<>|\s\(\)（）]+', '-').Trim('-')
+}
+function Get-OutDir([System.IO.FileInfo]$file) {
+    $name = Get-ExportName $file.BaseName
+    $base = Join-Path $root "src\plc"
+    if ($file.Extension -eq ".library") {
+        $base = Join-Path $base "reference"
+    }
+    $rel = $file.DirectoryName.Substring($projDir.Length).TrimStart('\')
+    if ($rel) { $base = Join-Path $base $rel }
+    return (Join-Path $base $name)
+}
 
 # list .project only (.library cannot be built)
 $files = @(Get-ChildItem $projDir -File -Recurse | Where-Object { $_.Extension -eq ".project" } | Sort-Object FullName)
@@ -46,6 +55,19 @@ if ($Select -lt 1 -or $Select -gt $files.Count) {
 if ($Select -lt 1 -or $Select -gt $files.Count) { Write-Host "Invalid number"; exit 1 }
 
 $file = $files[$Select - 1]
+
+# resolve CODESYS install AFTER project selection: match the project's last-saved version
+$enameB = Get-ExportName $file.BaseName
+$work0 = Join-Path $root ".codesys-sync"
+$exportInfo = Join-Path (Get-OutDir $file) "_project_info.txt"
+$stamp0 = Join-Path $work0 ($enameB + '_lastexport.txt')
+$install = Resolve-CodesysInstall -Exe $CodesysExe -ProfileName $Profile `
+    -ProjectFile $file.FullName -ExportInfo $exportInfo -StampFile $stamp0
+$codesys = $install.Exe
+$profile = $install.Profile
+Write-Host "CODESYS: $codesys"
+Write-Host "Profile: $profile"
+
 $work = Join-Path $root ".codesys-sync"
 New-Item -ItemType Directory -Force -Path $work | Out-Null
 

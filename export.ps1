@@ -22,11 +22,6 @@ try { [Console]::OutputEncoding = [System.Text.Encoding]::UTF8 } catch {}
 if (-not $Root) { Write-Host "-Root is required (target repo root, must contain projects\)"; exit 1 }
 $root    = (Resolve-Path -LiteralPath $Root).Path
 $projDir = Join-Path $root "projects"
-$install = Resolve-CodesysInstall -Exe $CodesysExe -ProfileName $Profile
-$codesys = $install.Exe
-$profile = $install.Profile
-Write-Host "CODESYS: $codesys"
-Write-Host "Profile: $profile"
 
 function Get-ExportName([string]$base) {
     # full-width parens included on purpose: CJK project names may contain them
@@ -60,6 +55,19 @@ if ($Select -lt 1 -or $Select -gt $files.Count) { Write-Host "Invalid number"; e
 
 $file = $files[$Select - 1]
 $outDir = Get-OutDir $file
+
+# resolve CODESYS install AFTER project selection: match the project's last-saved version
+$ename = Get-ExportName $file.BaseName
+$work0 = Join-Path $root ".codesys-sync"
+$exportInfo = Join-Path $outDir "_project_info.txt"
+$stamp0 = Join-Path $work0 ($ename + '_lastexport.txt')
+$install = Resolve-CodesysInstall -Exe $CodesysExe -ProfileName $Profile `
+    -ProjectFile $file.FullName -ExportInfo $exportInfo -StampFile $stamp0
+$codesys = $install.Exe
+$profile = $install.Profile
+Write-Host "CODESYS: $codesys"
+Write-Host "Profile: $profile"
+
 $work = Join-Path $root ".codesys-sync"
 New-Item -ItemType Directory -Force -Path $work, $outDir | Out-Null
 

@@ -1,6 +1,6 @@
 ---
 name: codesys-sync
-description: Two-way sync between binary CODESYS projects (.project/.library) and plain-text source — tree export of every Application object to *.st plus a _project_info.txt summary; import via structure_ops.txt structure operations (create/rename/delete/move, task assignment, add library; renames auto-rewrite references project-wide) and per-object text write-back with automatic backup and write-back verification; also headless build with a structured report. Use when a repo needs codesys-sync export/import, the user says "export project", "import ST", "build PLC project", "structure_ops", "codesys-sync", 导出工程 / 导入 ST / 编译工程, or for any CODESYS repo following the projects/ + src/plc/ layout.
+description: Two-way sync between binary CODESYS projects (.project/.library) and plain-text source — tree export of every Application object to *.st plus a _project_info.txt summary; import via structure_ops.txt structure operations (create/rename/delete/move, task assignment, add library; renames auto-rewrite references project-wide) and per-object text write-back with automatic backup and write-back verification; also headless build with a structured report. CODESYS install is chosen from the project's last-saved compiler version (not "newest installed"). Use when a repo needs codesys-sync export/import, the user says "export project", "import ST", "build PLC project", "structure_ops", "codesys-sync", 导出工程 / 导入 ST / 编译工程, or for any CODESYS repo following the projects/ + src/plc/ layout.
 ---
 
 # CODESYS project import/export/build
@@ -19,7 +19,7 @@ CODESYS `.project` / `.library` files are binary: git cannot track their content
 4. **After hand-editing the project in the IDE, export before importing** (the timestamp guard refuses otherwise; use `-Force` only when you are sure nothing was hand-edited).
 5. **Rename**: preferably rename the file in the export tree + update its `// PATH:` header — the importer recognizes it via `// GUID:`; or write a RENAME op. Both rewrite references project-wide — **always run a build afterwards to confirm**.
 6. When `--runscript` hits FATAL, the CODESYS exit code is usually still 0 — judge success by `FATAL`/`ABORTED` in the log and by `errors=` in the build report, never by the exit code.
-7. With several CODESYS versions installed, auto-detection picks the **newest**; when the project belongs to an older version you must pin the matching installation via parameters or environment variables.
+7. With several CODESYS versions installed (e.g. SP17 + SP22), auto-detection **matches the project's last-saved compiler version** (`project_settings.get_compilerversion`, cached in `_project_info.txt` as `compiler_version:`). It does **not** pick the newest install — opening an SP17 project with SP22 would silently upgrade it. Only when the version cannot be determined does it fall back to the newest install (with a WARN). Pin an install via `-CodesysExe`/`-Profile` only when you intentionally want a different one.
 
 ## Interface
 
@@ -48,9 +48,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File <codesys-sync>\build.ps1 -Ro
 | `-VerifyBuild` | Import only: run a full build after a successful import (exit 0 only when errors=0) |
 | `-VerifyQuick` | Import only: run a precompile quick check (`check_all_pool_objects`, faster than a full build; `-VerifyBuild` wins if both are given) |
 | `-Out` | Build only: report output path |
-| `-CodesysExe` / `-Profile` | CODESYS installation override. Defaults to auto-detection (below); use these to pin the target install when several versions coexist |
+| `-CodesysExe` / `-Profile` | CODESYS installation override. Defaults to auto-detection: the install matching the project's **last-saved** compiler version (see below) |
 
-**CODESYS install resolution order**: parameters → environment variables `CODESYS_SYNC_EXE` / `CODESYS_SYNC_PROFILE` → auto-detect (newest `CODESYS 3.5*` under Program Files; profile taken from the file name of that install's `CODESYS\Profiles\*.profile.xml`).
+**CODESYS install resolution order**: parameters → environment variables `CODESYS_SYNC_EXE` / `CODESYS_SYNC_PROFILE` → **match the project's last-saved compiler version** to the installed `CODESYS 3.5*` (version cached in `_project_info.txt` `compiler_version:`; if missing, a no-save probe reads `get_compilerversion()`). Profile taken from the chosen install's `CODESYS\Profiles\*.profile.xml`.
 
 A repo may hold thin `.bat` double-click entry points, equivalent to calling these scripts with `-Root`.
 
