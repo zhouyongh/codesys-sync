@@ -246,6 +246,24 @@ def same_text(a, b):
     return a.rstrip(u"\n") == b.rstrip(u"\n")
 
 
+def name_taken_app_wide(proj, name):
+    """True if a type/object named `name` exists anywhere in the application.
+
+    CODESYS type names (DUT/GVL/POU) are application-scoped: a folder does
+    not namespace them. CREATE_* under Tests/ still collides with
+    Application/Name and the IDE raises "name already exists".
+    """
+    try:
+        idx = build_index(proj)
+    except Exception:
+        return False
+    for full in idx:
+        tail = full.rsplit(u"/", 1)[-1]
+        if tail == name:
+            return True
+    return False
+
+
 def parse_st(fname):
     f = codecs.open(fname, "r", "utf-8-sig")
     text = norm_eol(f.read())
@@ -261,8 +279,14 @@ def parse_st(fname):
             break
     try:
         d1 = text.index(DECL_MARK) + len(DECL_MARK)
-        d2 = text.index(IMPL_MARK)
-        i1 = d2 + len(IMPL_MARK)
+        # tolerate a missing trailing newline after the IMPL marker
+        try:
+            d2 = text.index(IMPL_MARK)
+            i1 = d2 + len(IMPL_MARK)
+        except ValueError:
+            alt = u"\n// ===== IMPLEMENTATION ====="
+            d2 = text.index(alt)
+            i1 = d2 + len(alt)
     except ValueError:
         return None
     decl = text[d1:d2]
@@ -414,6 +438,10 @@ def do_create(proj, op, args, changed_flags):
         if child_named(parent, name) is not None:
             log(u"ops: %s %s/%s already exists, skipped" % (op, parent_rel, name))
             return
+        if name_taken_app_wide(proj, name):
+            log(u"ops: %s %s/%s name already used elsewhere in the app, skipped"
+                % (op, parent_rel, name))
+            return
         try:
             if op == u"CREATE_POU":
                 new_o = parent.create_pou(name=name, type=se.PouType.Program, language=None)
@@ -490,8 +518,9 @@ def do_create(proj, op, args, changed_flags):
         full, parent = resolve_rel(proj, parent_rel)
         if parent is None:
             fatal(u"CREATE_DUT parent not found: " + parent_rel)
-        if child_named(parent, name) is not None:
-            log(u"ops: CREATE_DUT %s/%s already exists, skipped" % (parent_rel, name))
+        if child_named(parent, name) is not None or name_taken_app_wide(proj, name):
+            log(u"ops: CREATE_DUT %s/%s already exists (app-wide name), skipped"
+                % (parent_rel, name))
             return
         tmap = {
             u"Structure": se.DutType.Structure,
@@ -520,8 +549,9 @@ def do_create(proj, op, args, changed_flags):
         full, parent = resolve_rel(proj, parent_rel)
         if parent is None:
             fatal(u"CREATE_GVL parent not found: " + parent_rel)
-        if child_named(parent, name) is not None:
-            log(u"ops: CREATE_GVL %s/%s already exists, skipped" % (parent_rel, name))
+        if child_named(parent, name) is not None or name_taken_app_wide(proj, name):
+            log(u"ops: CREATE_GVL %s/%s already exists (app-wide name), skipped"
+                % (parent_rel, name))
             return
         try:
             new_o = parent.create_gvl(name)

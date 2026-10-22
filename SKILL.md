@@ -86,6 +86,15 @@ Further facts:
 - The POU body is `<Name>.st`; its methods/properties/actions are `<Name>/<child>.st` (parent file + same-named directory coexist).
 - Encoding UTF-8 (BOM or not); line-ending differences are normalized on the import side.
 
+**Hard rules (will FATAL or silently skip if ignored)**
+
+1. `// PATH:` is the **first** line and must be the **full** object path (`Device/Plc Logic/Application/...`), not an export-relative path. A file that does not parse is skipped with `unparseable .st`.
+2. Declaration and implementation need the exact markers `// ===== DECLARATION =====` / `// ===== IMPLEMENTATION =====` (a missing trailing newline after the impl marker is tolerated).
+3. **Type names are application-scoped** — a folder does not namespace them. `CREATE_DUT|Application/Tests|Foo` fails or skips if `Application/Foo` already exists. Move or delete the old name first (`MOVE` / `DELETE`).
+4. `structure_ops` is **all-or-nothing**: any `fatal` aborts the import and the project file is left untouched. Fix the op and re-run; do not assume half of the ops stuck.
+5. `export.ps1` **rewrites** the export directory from the project. Copy hand-edited `.st` back only after export, or import first.
+6. Close the project in the IDE before import (`project in use` otherwise).
+
 ## structure_ops.txt (structure operations list)
 
 Placed at `<SrcRoot>/<project name>/structure_ops.txt`; executed in order before the text write-back; if absent, the import is pure text write-back. Paths start with the Application node name (same as the export tree):
